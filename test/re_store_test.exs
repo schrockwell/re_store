@@ -41,10 +41,10 @@ defmodule ReStoreTest do
 
     # WHEN
     meta = %{name: "test"}
-    ReStore.register(TestStore1, self(), meta)
+    TestStore1.register(self(), meta)
 
     # THEN
-    assert ReStore.list(TestStore1) == [meta]
+    assert TestStore1.list() == [meta]
   end
 
   test "can register and list across instances" do
@@ -54,11 +54,11 @@ defmodule ReStoreTest do
 
     # WHEN
     meta = %{name: "test"}
-    ReStore.register(TestStore1, self(), meta)
+    TestStore1.register(self(), meta)
     flush(TestStore2)
 
     # THEN
-    assert ReStore.list(TestStore2) == [meta]
+    assert TestStore2.list() == [meta]
   end
 
   test "can put across instances" do
@@ -67,15 +67,15 @@ defmodule ReStoreTest do
     start_supervised!(TestStore2)
 
     meta1 = %{name: "test1"}
-    ReStore.register(TestStore1, self(), meta1)
+    TestStore1.register(self(), meta1)
 
     # WHEN
     meta2 = %{name: "test2"}
-    ReStore.put(TestStore1, self(), meta2)
+    TestStore1.put(self(), meta2)
     flush(TestStore2)
 
     # THEN
-    assert ReStore.list(TestStore2) == [meta2]
+    assert TestStore2.list() == [meta2]
   end
 
   test "can merge across instances" do
@@ -84,15 +84,15 @@ defmodule ReStoreTest do
     start_supervised!(TestStore2)
 
     meta = %{name: "test1", id: 123}
-    ReStore.register(TestStore1, self(), meta)
+    TestStore1.register(self(), meta)
 
     # WHEN
     changes = %{name: "test2"}
-    ReStore.merge(TestStore1, self(), changes)
+    TestStore1.merge(self(), changes)
     flush(TestStore2)
 
     # THEN
-    assert ReStore.list(TestStore2) == [Map.merge(meta, changes)]
+    assert TestStore2.list() == [Map.merge(meta, changes)]
   end
 
   test "removes local entries when the process dies" do
@@ -101,14 +101,14 @@ defmodule ReStoreTest do
 
     task = Task.async(fn -> Process.sleep(1000) end)
 
-    ReStore.register(TestStore1, task.pid, %{name: "test"})
+    TestStore1.register(task.pid, %{name: "test"})
 
     # WHEN
     Task.shutdown(task, :brutal_kill)
     flush(TestStore1)
 
     # THEN
-    assert ReStore.list(TestStore1) == []
+    assert TestStore1.list() == []
   end
 
   test "removes remote entries when the process dies" do
@@ -118,7 +118,7 @@ defmodule ReStoreTest do
 
     task = Task.async(fn -> Process.sleep(1000) end)
 
-    ReStore.register(TestStore1, task.pid, %{name: "test"})
+    TestStore1.register(task.pid, %{name: "test"})
 
     # WHEN
     Task.shutdown(task, :brutal_kill)
@@ -126,7 +126,7 @@ defmodule ReStoreTest do
     flush(TestStore2)
 
     # THEN
-    assert ReStore.list(TestStore2) == []
+    assert TestStore2.list() == []
   end
 
   test "removes remote entries when the peer ReStore server dies" do
@@ -134,7 +134,7 @@ defmodule ReStoreTest do
     store1 = start_supervised!(TestStore1)
     start_supervised!(TestStore2)
 
-    ReStore.register(TestStore1, self(), %{name: "test"})
+    TestStore1.register(self(), %{name: "test"})
 
     # WHEN
     Process.exit(store1, :kill)
@@ -142,7 +142,7 @@ defmodule ReStoreTest do
     flush(TestStore2)
 
     # THEN
-    assert ReStore.list(TestStore2) == []
+    assert TestStore2.list() == []
   end
 
   test "new instance gets entries from existing instances" do
@@ -150,7 +150,7 @@ defmodule ReStoreTest do
     start_supervised!(TestStore1)
 
     meta = %{name: "test"}
-    ReStore.register(TestStore1, self(), meta)
+    TestStore1.register(self(), meta)
 
     # WHEN
     start_supervised!(TestStore2)
@@ -158,7 +158,7 @@ defmodule ReStoreTest do
     flush(TestStore2)
 
     # THEN
-    assert ReStore.list(TestStore2) == [meta]
+    assert TestStore2.list() == [meta]
   end
 
   test "handle_puts/1 is called when a new entry is registered" do
@@ -171,7 +171,7 @@ defmodule ReStoreTest do
     meta = %{name: "test"}
 
     # WHEN
-    ReStore.register(TestStore1, self(), meta)
+    TestStore1.register(self(), meta)
 
     # THEN
     assert_receive {:handle_puts, [^meta]}
@@ -189,8 +189,8 @@ defmodule ReStoreTest do
     meta2 = %{name: "test2"}
 
     # WHEN
-    ReStore.register(TestStore1, self(), meta1)
-    ReStore.put(TestStore1, self(), meta2)
+    TestStore1.register(self(), meta1)
+    TestStore1.put(self(), meta2)
 
     # THEN
     assert_receive {:handle_puts, [^meta1]}
@@ -210,7 +210,7 @@ defmodule ReStoreTest do
     task = Task.async(fn -> Process.sleep(1000) end)
 
     # WHEN
-    ReStore.register(TestStore1, task.pid, meta)
+    TestStore1.register(task.pid, meta)
     Task.shutdown(task, :brutal_kill)
 
     # THEN
@@ -231,8 +231,8 @@ defmodule ReStoreTest do
     task2 = Task.async(fn -> Process.sleep(1000) end)
 
     # WHEN
-    ReStore.register(TestStore1, task1.pid, meta1)
-    ReStore.register(TestStore1, task2.pid, meta2)
+    TestStore1.register(task1.pid, meta1)
+    TestStore1.register(task2.pid, meta2)
     Process.exit(store1, :kill)
     assert_down(store1)
 
